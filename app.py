@@ -32,7 +32,7 @@ def get_data_from_excel(sheet, start_row, n_col, nrows, rows_limit=15):
 @app.route('/get_comments', methods=['GET'])
 def get_comments():
     if request.method == 'GET':
-        workbook = xlrd.open_workbook('copy.xlsx')
+        workbook = xlrd.open_workbook('comments.xlsx')
         worksheet = workbook.sheet_by_name('PubMedCommonsArchive')
         nrows = worksheet.nrows
         ncols = worksheet.ncols
@@ -51,14 +51,14 @@ def update_excel():
     if request.method == 'GET':
         # GET parameters
         inflect_object = inflect.engine()
-        rb = open_workbook("copy.xlsx")
+        rb = open_workbook("comments.xlsx")
         wb = copy(rb)
         print(request.args)
         index = int(request.args.get("index"))
         comment_type = int(request.args.get("comment_type"))
         sheet_write = wb.get_sheet(0)
         sheet_write.write(index, 1, comment_type)
-        wb.save('copy.xlsx')
+        wb.save('comments.xlsx')
         return json.dumps({'sucess': 1})
 
 
