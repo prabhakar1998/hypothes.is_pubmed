@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Approve Comments</title>
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.css" />
+
+
+<script src="https://code.jquery.com/jquery-2.0.0.js"></script>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.js"></script>
+
+
+</head>
+
+
+<body>
+
+
+	<div class="container" style="margin-bottom: 100px; margin-top: 50px">
+	    <ul class="collapsible" data-collapsible="expandable" id="comments_list">
+
+	    </ul>
+	        <a class="waves-effect waves-light blue center-align truncate btn" style="margin-top: 0px; margin-right: 5px; 	margin-bottom: 5px; letter-spacing: 0px;" onClick="LoadMore(-1, 15);"><i class="material-icons left">expand_more</i>Load More</a>
+    </div>
+
+
+    <script type="text/javascript">
+
+		var lock_processing = 0;    	
+    	 $(document).ready(function(){
+
+			LoadMore(start_row  = 1, rows_limit = 15);
+				
+			var last_row_id = 1;
+			lock_processing = 0;    	
+			
+    		$('.collapsible').collapsible();    		 
+	        			        			
+
+  		});
+
+
+
+    	function deleteComment(collapsible_obj){
+
+				if(lock_processing == 0)
+				{	
+						lock_processing = 1;			
+						M.toast({html: 'Deleting!'})
+				    		//	make api call to delete the element
+				    		data = {'index': $(collapsible_obj).parent().parent().parent().parent()[0].id, 'comment_type': -1}
+				    		$(collapsible_obj).parent().parent().parent().parent().remove();
+				            $.ajax({
+				                type : "GET",
+				                url : "http://127.0.0.1:5000/update_excel",
+				                // dataType: 'json',
+				                // contentType: 'application/json',
+				                data : data,
+				                success : function(response) {
+				                	response = JSON.parse(response);
+				                	lock_processing = 0;
+				                    console.log(response);  
+				                    M.toast({html: 'Deleted!'})                
+				              }
+				        });
+
+				}
+				else
+				{
+					M.toast({html: 'Please Wait, Last Request Still Processing!'});
+				}    		  
+    	}
+
+
+    	function approve(collapsible_obj){
+    		debugger;
+    		var id = $(collapsible_obj).parent().parent().parent().parent()[0].id;
+    		select_id = "select_" + id;  
+			if($("#" + select_id).val()){
+				if(lock_processing == 0)
+				{	
+				lock_processing = 1;			
+						M.toast({html: 'Approving'});		  		
+		    			// make api call to approve the item
+			    		data = {'index': id, 'comment_type': $("#" + select_id).val()}
+			    		debugger;
+			    		$(collapsible_obj).parent().parent().parent().parent().remove();
+			            $.ajax({
+			                type : "GET",
+			                url : "http://127.0.0.1:5000/update_excel",
+			                // dataType: 'json',
+			                // contentType: 'application/json',
+			                data : data,
+			                success : function(response) {
+			                	lock_processing = 0;
+			                	response = JSON.parse(response);
+			                    console.log(response);  
+			                    M.toast({html: 'Approved!'});
+			              }
+			        });
+
+				}
+				else
+				{
+					M.toast({html: 'Please Wait, Last Request Still Processing!'});
+				}    		
+			}
+			else{
+				M.toast({html: "Instance Type Not Selected"});			
+			}
+    	}
+
+    	function LoadMore(start_row  = 1, rows_limit = 15) {
+    	
+
+    		if(start_row == -1)
+    		{
+    			data = {'start_row': last_row_id, 'rows_limit': 15};
+    		}
+    		else
+    		{
+    			data = {'start_row': 1, 'rows_limit': 15};
+    		}    			
+		            $.ajax({
+		                type : "GET",
+		                url : "http://127.0.0.1:5000/get_comments",
+		                // dataType: 'json',
+		                // contentType: 'application/json',
+		                data : data,
+		                success : function(response) {
+		                	response = JSON.parse(response);
+		                    console.log(response);
+		                    console.log("Logging");
+		                    debugger;
+		                    console.log("Logged");
+		                    if(response.length > 0)
+		                    {
+		                    	last_row_id = response[response.length - 1][0];
+		                    	for (var i = 0; i < response.length; i++) {
+		                    			elements = response[i];
+
+		                    			$("#comments_list").append(`<li id="${elements[0]}">
+									          <div class="collapsible-header" >
+									          		<i class="mdi-navigation-chevron-right"></i>
+									          		DOI: ${elements[2]} <p class="right" style="margin: 0px;margin-left: 20px;">Date: ${elements[6]} </p>
+									          </div>
+									          <div class="collapsible-body">
+									          		<div class="row">
+									          			<div class="left col s12 l3 m3">
+									          				<a href="${elements[3]}" target="_blank" class="right waves-effect waves-light btn" style="margin-top: 0px; margin-right: 5px; 	margin-bottom: 5px; letter-spacing: 0px;" ><i class="material-icons left">open_in_new</i>View Source</a>	
+									          			</div>
+									          			<div class="right col s12 l4 m4">																		          		
+															<a class="right waves-effect waves-light red btn" style="margin-top: 0px; margin-right: 5px; 	margin-bottom: 5px; letter-spacing: 0px;" onClick="deleteComment(this);"><i class="material-icons left">delete</i>Delete</a>
+															<a class="right waves-effect green waves-light btn" style="margin-right: 5px;  margin-bottom: 5px;" onClick="approve(this);"><i class="material-icons left">send</i>Approve</a>
+														</div>	
+														<div class="right input-field col s12 l3 m3" style="margin: 0px;">
+															    <select id="select_${elements[0]}">
+															      <option value="" disabled selected>Instance Type</option>
+															      <option value="1">Reproduce</option>
+															      <option value="2">Troubleshoot</option>
+															      <option value="3">Alteration</option>
+															      <option value="4">Insight</option>
+															    </select>
+														</div>								
+													</div>	          		
+									          			<p style="margin:10px">
+									          			  ${elements[7]}
+									          			</p>
+									          </div>
+						        			</li>`);
+
+		                    	}
+		                 
+								$('select').formSelect();	
+		                    }
+		              }
+		        });
+
+    	}
+
+    </script>
+
+</body>
+</html>
