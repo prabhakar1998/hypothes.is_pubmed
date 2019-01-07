@@ -1,10 +1,15 @@
 from flask import Flask, render_template, request
-import xlrd
 import json
-import xlwt
-import inflect
-from xlrd import open_workbook
-from xlutils.copy import copy
+import MySQLdb
+
+user_name = "USER_NAME"
+password =  "PASSWORD"
+dbname = "DBNAME"
+
+
+conn = MySQLdb.connect("localhost", user_name, password, dbname)
+conn.set_character_set('utf8')
+cur = conn.cursor()
 
 app = Flask(__name__)
 
@@ -32,17 +37,23 @@ def get_data_from_excel(sheet, start_row, n_col, nrows, rows_limit=15):
 @app.route('/get_comments', methods=['GET'])
 def get_comments():
     if request.method == 'GET':
-        workbook = xlrd.open_workbook('comments.xlsx')
-        worksheet = workbook.sheet_by_name('PubMedCommonsArchive')
-        nrows = worksheet.nrows
-        ncols = worksheet.ncols
         # GET parameters
-        start_row=1
-        rows_limit=15
+        rows_limit = 15
         print(request.args)
-        start_row = int(request.args.get("start_row"))
         rows_limit = int(request.args.get("rows_limit"))
-        rows = get_data_from_excel(worksheet, start_row, ncols, nrows, rows_limit)
+        start_row = int(request.args.get("start_row"))
+        db_rows = cur.execute("SELECT * FROM comments WHERE comment_type = 0 AND doi_index > %d LIMIT 15",(start_row,))
+        if db_rows > 0:
+            rows = cur.fetchall()
+            print(len(rows))
+            response = []
+            for i in rows:
+                i = list(i)
+                i[4] = json.loads(i[4])
+                response.append(i)
+            rows = {'rows_count': len(response), 'rows':response}
+        else:
+            rows = {'error': 'No more records', 'rows_count': 0}
         return json.dumps(rows)
 
 
@@ -50,15 +61,11 @@ def get_comments():
 def update_excel():
     if request.method == 'GET':
         # GET parameters
-        inflect_object = inflect.engine()
-        rb = open_workbook("comments.xlsx")
-        wb = copy(rb)
         print(request.args)
         index = int(request.args.get("index"))
-        comment_type = int(request.args.get("comment_type"))
-        sheet_write = wb.get_sheet(0)
-        sheet_write.write(index, 1, comment_type)
-        wb.save('comments.xlsx')
+        comment_type = int(request.args.get("comment_type"))    
+        cur.execute("UPDATE comments SET comment_type = %d  WHERE doi_index = %d", (comment_type, index))
+        conn.commit()
         return json.dumps({'sucess': 1})
 
 
